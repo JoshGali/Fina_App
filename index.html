@@ -24,6 +24,7 @@
     --radius: 12px;
   }
   * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
   html, body { margin: 0; background: var(--bg); color: var(--text); }
   body {
     font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -80,6 +81,7 @@
   }
   input[type=number] { font-variant-numeric: tabular-nums; }
   .seg { display: grid; grid-template-columns: 1fr 1fr; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 3px; }
+  .seg.seg3 { grid-template-columns: 1fr 1fr 1fr; }
   .seg input { display: none; }
   .seg label { text-align: center; padding: 7px; border-radius: 6px; cursor: pointer; color: var(--text-2); font-weight: 500; }
   .seg input:checked + label { background: var(--surface-2); color: var(--text); box-shadow: inset 0 0 0 1px #4a4a45; }
@@ -193,7 +195,7 @@
   <header class="bar">
     <div>
       <h1>Mis finanzas</h1>
-      <div class="sub">Gastos e ingresos semanales y mensuales</div>
+      <div class="sub">Gastos e ingresos semanales y mensuales · pesos mexicanos (MXN)</div>
     </div>
     <div class="month-nav">
       <button class="icon" id="prevMonth" aria-label="Mes anterior">‹</button>
@@ -351,9 +353,10 @@
         <form id="saveForm" style="margin-top:20px" autocomplete="off">
           <h3 style="font-size:14px;margin-bottom:10px" id="saveFormTitle">Nuevo movimiento de ahorro</h3>
           <div class="row">
-            <div class="seg" role="radiogroup" aria-label="Tipo de ahorro">
+            <div class="seg seg3" role="radiogroup" aria-label="Tipo de ahorro">
               <input type="radio" name="stype" id="sAporte" value="aporte" checked><label for="sAporte">Aporte</label>
               <input type="radio" name="stype" id="sRetiro" value="retiro"><label for="sRetiro">Retiro</label>
+              <input type="radio" name="stype" id="sInicial" value="inicial"><label for="sInicial">Saldo inicial</label>
             </div>
           </div>
           <div class="row">
@@ -414,7 +417,7 @@
     ['otros_ing', 'Otros ingresos'],
   ];
   const SPEND_CATS = EXPENSE_CATS.filter(([k]) => k !== 'ahorro'); // los que cuentan como gasto
-  const LABELS = Object.fromEntries([...EXPENSE_CATS, ...INCOME_CATS, ['aporte', 'Aporte'], ['retiro', 'Retiro']]);
+  const LABELS = Object.fromEntries([...EXPENSE_CATS, ...INCOME_CATS, ['aporte', 'Aporte'], ['retiro', 'Retiro'], ['inicial', 'Saldo inicial']]);
   // Una sola familia de color (azul), de claro a oscuro; el más grande es el más claro.
   const RAMP = ['#cde2fb', '#aacdf5', '#86b6ef', '#6da7ec', '#5598e7', '#3987e5', '#2a78d6', '#256abf', '#1c5cab'];
   const STORE_KEY = 'fina-app-v1';
@@ -432,15 +435,15 @@
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const round2 = (n) => Math.round(n * 100) / 100;
 
-  const nf = new Intl.NumberFormat('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+  const nf = new Intl.NumberFormat('es-MX', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
   const money = (n) => (n < 0 ? '−' : '') + '$' + nf.format(Math.abs(round2(n)));
   const pctFmt = (n) => nf.format(Math.round(n * 10) / 10) + '%';
   const monthName = (ym, short) => {
     const [y, m] = ym.split('-').map(Number);
-    const s = new Date(y, m - 1, 1).toLocaleDateString('es-AR', short ? { month: 'short' } : { month: 'long', year: 'numeric' });
+    const s = new Date(y, m - 1, 1).toLocaleDateString('es-MX', short ? { month: 'short' } : { month: 'long', year: 'numeric' });
     return s.charAt(0).toUpperCase() + s.slice(1).replace('.', '');
   };
-  const dayFmt = (s) => parseISO(s).toLocaleDateString('es-AR', { weekday: 'short', day: 'numeric', month: 'short' }).replace(/\./g, '');
+  const dayFmt = (s) => parseISO(s).toLocaleDateString('es-MX', { weekday: 'short', day: 'numeric', month: 'short' }).replace(/\./g, '');
 
   const todayISO = () => toISO(new Date());
 
@@ -454,7 +457,7 @@
     try {
       const raw = localStorage.getItem(STORE_KEY);
       if (!raw) return null;
-      const data = JSON.parse(raw);
+      const data = migrate(JSON.parse(raw));
       return validate(data) ? normalize(data) : null;
     } catch { return null; }
   }
@@ -463,6 +466,34 @@
   }
   function defaultBudgets() {
     return { supermercado: 6000, comidas: 1500, transporte: 1500, alquiler: 11000, salud: 2000, suscripciones: 600, ropa: 2000, ocio: 2000, otros: 800 };
+  }
+  // Convierte archivos del esquema anterior (savings separado, categorías viejas) al actual.
+  function migrate(d) {
+    if (!d || typeof d !== 'object') return d;
+    const expKeys = EXPENSE_CATS.map(([k]) => k), incKeys = INCOME_CATS.map(([k]) => k);
+    const catMap = { servicios: 'alquiler', extra: 'extras', otros_ingresos: 'otros_ing' };
+    const out = { ...d, movements: Array.isArray(d.movements) ? d.movements.map((m) => ({ ...m })) : [] };
+    out.movements.forEach((m) => {
+      if (!m || m.type === 'ahorro') return;
+      m.category = catMap[m.category] || m.category;
+      if (m.type === 'gasto' && m.category === 'ahorro') { m.type = 'ahorro'; m.category = 'aporte'; }
+      else if (m.type === 'gasto' && !expKeys.includes(m.category)) m.category = 'otros';
+      else if (m.type === 'ingreso' && !incKeys.includes(m.category)) m.category = 'otros_ing';
+      if (typeof m.amount === 'string') m.amount = parseFloat(m.amount);
+    });
+    if (Array.isArray(d.savings)) {
+      const kindMap = { deposito: 'aporte', aporte: 'aporte', retiro: 'retiro', inicial: 'inicial', saldo: 'inicial' };
+      d.savings.forEach((sv) => out.movements.push({
+        id: sv.id, type: 'ahorro', category: kindMap[sv.kind] || 'aporte',
+        amount: typeof sv.amount === 'string' ? parseFloat(sv.amount) : sv.amount, date: sv.date, note: sv.note || '',
+      }));
+      delete out.savings;
+    }
+    if (d.budgets && typeof d.budgets === 'object') {
+      out.budgets = {};
+      Object.entries(d.budgets).forEach(([k, v]) => { const nk = catMap[k] || k; if (expKeys.includes(nk) && nk !== 'ahorro') out.budgets[nk] = +v || 0; });
+    }
+    return out;
   }
   function validate(d) {
     if (!d || typeof d !== 'object' || !Array.isArray(d.movements)) return false;
@@ -610,8 +641,8 @@
       $('cmpArrow').textContent = d > 0 ? '▲' : d < 0 ? '▼' : '';
       $('cmpArrow').style.color = d > 0 ? 'var(--critical-text)' : 'var(--good)';
       $('cmpAvg').textContent = money(avg);
-      $('cmpText').textContent = d > 0.05 ? `Venís gastando ${pctFmt(d)} más que tu promedio.`
-        : d < -0.05 ? `Venís gastando ${pctFmt(-d)} menos que tu promedio.` : 'Estás igual que tu promedio.';
+      $('cmpText').textContent = d > 0.05 ? `Vas gastando ${pctFmt(d)} más que tu promedio.`
+        : d < -0.05 ? `Vas gastando ${pctFmt(-d)} menos que tu promedio.` : 'Estás igual que tu promedio.';
       if (withData.length < 6) $('cmpText').textContent += ` (promedio de ${withData.length} ${withData.length === 1 ? 'mes' : 'meses'} con datos)`;
     } else {
       $('cmpPct').textContent = '—'; $('cmpArrow').textContent = '';
@@ -718,7 +749,7 @@
     });
     $('barNote').textContent = avg > 0
       ? `La barra clara es ${monthName(viewYM).toLowerCase()}; la línea punteada es el promedio de los meses anteriores.`
-      : 'Cargá movimientos en meses anteriores para ver la evolución.';
+      : 'Registra movimientos en meses anteriores para ver la evolución.';
   }
   function niceStep(raw) {
     if (raw <= 0) return 1;
@@ -807,16 +838,16 @@
     $('sGoalFill').style.width = Math.min(gp, 100) + '%';
     $('sGoalText').textContent = goal > 0
       ? (bal >= goal ? `¡Meta alcanzada! ${pctFmt(gp)}` : `${pctFmt(gp)} de la meta · faltan ${money(goal - bal)}`)
-      : 'Definí una meta para ver tu avance.';
+      : 'Define una meta para ver tu avance.';
 
     $('saveRows').innerHTML = rows.length ? rows.reverse().map(({ m, bal }) => `<tr>
         <td>${esc(dayFmt(m.date))} <span class="sub">${parseISO(m.date).getFullYear()}</span></td>
-        <td><span class="tag ${m.category === 'aporte' ? 'in' : ''}">${m.category === 'aporte' ? 'Aporte' : 'Retiro'}</span></td>
+        <td><span class="tag ${m.category !== 'retiro' ? 'in' : ''}">${esc(LABELS[m.category] || m.category)}</span></td>
         <td class="note">${esc(m.note)}</td>
         <td class="num">${m.category === 'retiro' ? '−' : '+'}${money(m.amount)}</td>
         <td class="num">${money(bal)}</td>
         <td class="ops"><button data-edit="${m.id}">Editar</button> <button class="danger" data-del="${m.id}">Borrar</button></td>
-      </tr>`).join('') : '<tr><td colspan="6" class="empty">Todavía no hay ahorros cargados.</td></tr>';
+      </tr>`).join('') : '<tr><td colspan="6" class="empty">Todavía no hay ahorros registrados.</td></tr>';
   }
 
   // ---------- Tooltip y avisos ----------
@@ -933,7 +964,7 @@
     if (!m) return;
     if (m.type === 'ahorro') {
       editingSaveId = id;
-      (m.category === 'retiro' ? $('sRetiro') : $('sAporte')).checked = true;
+      ($({ retiro: 'sRetiro', inicial: 'sInicial' }[m.category] || 'sAporte')).checked = true;
       $('sAmount').value = m.amount; $('sDate').value = m.date; $('sNote').value = m.note;
       $('saveFormTitle').textContent = 'Editar movimiento de ahorro';
       $('sSubmit').textContent = 'Guardar cambios'; $('sCancel').hidden = false;
@@ -970,7 +1001,7 @@
 
   // ---------- Exportar / importar ----------
   $('exportBtn').addEventListener('click', () => {
-    const payload = { app: 'mis-finanzas', version: 1, exportedAt: new Date().toISOString(), ...state };
+    const payload = { app: 'mis-finanzas', version: 2, currency: 'MXN', exportedAt: new Date().toISOString(), ...state };
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
@@ -985,7 +1016,7 @@
     e.target.value = '';
     if (!file) return;
     try {
-      const data = JSON.parse(await file.text());
+      const data = migrate(JSON.parse(await file.text()));
       if (!validate(data)) throw new Error('formato');
       if (!confirm(`Se van a reemplazar tus datos actuales por ${data.movements.length} movimientos del archivo. ¿Continuar?`)) return;
       state = normalize(data);
