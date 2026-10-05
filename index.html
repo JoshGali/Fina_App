@@ -138,6 +138,15 @@
   .tag { display: inline-block; font-size: 12px; padding: 2px 8px; border-radius: 999px; background: var(--surface-2); color: var(--text-2); border: 1px solid var(--border); white-space: nowrap; }
   .tag.in { color: #9ec5f4; border-color: var(--accent-soft); }
   .amt-in { color: #9ec5f4; }
+  tr.sel td { background: var(--surface-2); }
+  tr.sel td:first-child { box-shadow: inset 3px 0 0 var(--accent); }
+  .totals { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 16px; }
+  .totals .t-box { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; min-width: 0; }
+  .totals .t-box.main { border-color: var(--accent-soft); }
+  .totals .t-label { font-size: 13px; color: var(--text-2); }
+  .totals .t-val { font-size: clamp(22px, 2.6vw, 30px); font-weight: 650; letter-spacing: -.3px; margin-top: 2px; }
+  .totals .t-foot { font-size: 12px; color: var(--muted); margin-top: 4px; }
+  @media (max-width: 640px) { .totals { grid-template-columns: 1fr; gap: 10px; } }
   .table-scroll { overflow-x: auto; }
   .empty { color: var(--muted); padding: 20px 0; text-align: center; }
 
@@ -304,6 +313,37 @@
       <div class="chart-note" id="barNote"></div>
     </div>
   </div>
+
+  <!-- Sobrante por mes -->
+  <section class="card">
+    <div class="card-head">
+      <h2>Sobrante por mes</h2>
+      <span class="sub" id="monthlyAsOf"></span>
+    </div>
+    <div class="totals">
+      <div class="t-box">
+        <div class="t-label">Sobrante acumulado (libre)</div>
+        <div class="t-val" id="tFree">$0</div>
+        <div class="t-foot">Lo que sobró de ingresos − gastos, sin lo que pasaste a ahorro</div>
+      </div>
+      <div class="t-box">
+        <div class="t-label">En ahorros</div>
+        <div class="t-val" id="tSaved">$0</div>
+        <div class="t-foot">Saldo de la sección de ahorros</div>
+      </div>
+      <div class="t-box main">
+        <div class="t-label">Total que tienes</div>
+        <div class="t-val" id="tAll">$0</div>
+        <div class="t-foot">Sobrante libre + ahorros</div>
+      </div>
+    </div>
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>Mes</th><th class="num">Ingresos</th><th class="num">Gastos</th><th class="num">Sobró</th><th class="num">A ahorro</th><th class="num">Libre del mes</th><th class="num">Acumulado libre</th></tr></thead>
+        <tbody id="monthRows"></tbody>
+      </table>
+    </div>
+  </section>
 
   <!-- Movimientos -->
   <section class="card">
@@ -655,6 +695,7 @@
     renderList(month);
     renderBudgets(month);
     renderSavings();
+    renderMonthly();
     fillFilter();
   }
 
@@ -819,6 +860,48 @@
     if (over) parts.push(`${over} excedido${over > 1 ? 's' : ''}`);
     if (warn) parts.push(`${warn} cerca del tope`);
     $('budgetSummary').textContent = parts.join(' · ');
+  }
+
+  // ----- Sobrante por mes -----
+  function renderMonthly() {
+    const all = state.movements;
+    const yms = all.map((m) => ymOf(m.date));
+    const endYM = viewYM;
+    const firstYM = yms.length ? yms.reduce((a, b) => (a < b ? a : b)) : viewYM;
+    const lastYM = yms.length ? yms.reduce((a, b) => (a > b ? a : b)) : viewYM;
+    const rows = [];
+    let acc = 0, ym = firstYM < viewYM ? firstYM : viewYM;
+    const stop = lastYM > viewYM ? lastYM : viewYM;
+    let freeAt = 0;
+    for (let guard = 0; ym <= stop && guard < 600; guard++, ym = shiftYM(ym, 1)) {
+      const list = all.filter((m) => ymOf(m.date) === ym);
+      const inc = sum(incomesOf(list)), exp = sum(expensesOf(list));
+      const toSave = sum(list.filter((m) => m.type === 'ahorro' && m.category === 'aporte'))
+        - sum(list.filter((m) => m.type === 'ahorro' && m.category === 'retiro'));
+      const free = inc - exp - toSave;
+      acc += free;
+      rows.push({ ym, inc, exp, left: inc - exp, toSave, free, acc, has: list.length > 0 });
+      if (ym === endYM) freeAt = acc;
+    }
+    // Saldo de ahorros al cierre del mes elegido
+    const endDate = `${endYM}-${pad(daysIn(endYM))}`;
+    const savedAt = all.filter((m) => m.type === 'ahorro' && m.date <= endDate)
+      .reduce((s, m) => s + (m.category === 'retiro' ? -m.amount : m.amount), 0);
+
+    $('monthlyAsOf').textContent = `Al cierre de ${monthName(endYM).toLowerCase()}`;
+    const setVal = (id, v) => { $(id).textContent = money(v); $(id).classList.toggle('neg', v < 0); };
+    setVal('tFree', freeAt); setVal('tSaved', savedAt); setVal('tAll', freeAt + savedAt);
+
+    const cell = (v) => `<td class="num${v < 0 ? ' neg' : ''}">${money(v)}</td>`;
+    $('monthRows').innerHTML = rows.filter((r) => r.has || r.ym === viewYM).reverse().map((r) => `<tr class="${r.ym === viewYM ? 'sel' : ''}">
+        <td>${esc(monthName(r.ym))}</td>
+        <td class="num">${money(r.inc)}</td>
+        <td class="num">${money(r.exp)}</td>
+        ${cell(r.left)}
+        <td class="num">${money(r.toSave)}</td>
+        ${cell(r.free)}
+        ${cell(r.acc)}
+      </tr>`).join('') || '<tr><td colspan="7" class="empty">Sin movimientos todavía.</td></tr>';
   }
 
   // ----- Ahorros -----
