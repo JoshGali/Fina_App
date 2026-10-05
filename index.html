@@ -1,0 +1,1015 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mis Finanzas</title>
+<style>
+  :root {
+    color-scheme: dark;
+    --bg: #121211;
+    --surface: #1a1a19;
+    --surface-2: #232321;
+    --border: #2e2e2b;
+    --text: #ffffff;
+    --text-2: #c3c2b7;
+    --muted: #8b8a82;
+    --accent: #3987e5;
+    --accent-soft: #1c3554;
+    --track: #2b2b28;
+    --good: #0ca30c;
+    --warning: #fab219;
+    --critical: #d03b3b;
+    --critical-text: #f0706f;
+    --radius: 12px;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--text); }
+  body {
+    font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    font-variant-numeric: tabular-nums;
+  }
+  .wrap { max-width: 1240px; margin: 0 auto; padding: 20px 16px 60px; }
+  h1, h2, h3 { margin: 0; font-weight: 600; }
+  h1 { font-size: 20px; letter-spacing: .2px; }
+  h2 { font-size: 15px; color: var(--text-2); font-weight: 600; }
+  .sub { color: var(--muted); font-size: 13px; }
+
+  header.bar {
+    display: flex; flex-wrap: wrap; gap: 12px; align-items: center;
+    justify-content: space-between; margin-bottom: 18px;
+  }
+  .month-nav { display: flex; align-items: center; gap: 6px; }
+  .month-nav .label { min-width: 150px; text-align: center; font-weight: 600; font-size: 16px; }
+  .actions { display: flex; flex-wrap: wrap; gap: 8px; }
+
+  button, .btn {
+    font: inherit; font-size: 14px; color: var(--text);
+    background: var(--surface-2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 7px 12px; cursor: pointer;
+  }
+  button:hover, .btn:hover { border-color: #4a4a45; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+  button.primary:hover { background: #2a78d6; }
+  button.ghost { background: transparent; }
+  button.icon { padding: 6px 10px; }
+  button.danger:hover { border-color: var(--critical); color: var(--critical-text); }
+  button:focus-visible, input:focus-visible, select:focus-visible {
+    outline: 2px solid var(--accent); outline-offset: 2px;
+  }
+
+  .card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 18px;
+  }
+  .card > h2 { margin-bottom: 14px; }
+  .card-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
+  .card-head h2 { margin: 0; }
+
+  .top { display: grid; grid-template-columns: minmax(280px, 360px) 1fr; gap: 16px; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px; }
+  section { margin-top: 16px; }
+  .top > *, .grid-2 > *, .savings > *, .kpis > *, .mini > * { min-width: 0; }
+
+  /* Form */
+  form .row { margin-bottom: 12px; }
+  label.lbl { display: block; font-size: 12px; color: var(--muted); margin-bottom: 5px; text-transform: uppercase; letter-spacing: .5px; }
+  input, select {
+    width: 100%; font: inherit; color: var(--text); background: var(--bg);
+    border: 1px solid var(--border); border-radius: 8px; padding: 9px 10px;
+  }
+  input[type=number] { font-variant-numeric: tabular-nums; }
+  .seg { display: grid; grid-template-columns: 1fr 1fr; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 3px; }
+  .seg input { display: none; }
+  .seg label { text-align: center; padding: 7px; border-radius: 6px; cursor: pointer; color: var(--text-2); font-weight: 500; }
+  .seg input:checked + label { background: var(--surface-2); color: var(--text); box-shadow: inset 0 0 0 1px #4a4a45; }
+  .form-actions { display: flex; gap: 8px; }
+  .form-actions button { flex: 1; padding: 10px; }
+  .hint { font-size: 12px; color: var(--muted); margin-top: 8px; min-height: 1em; }
+
+  /* KPIs */
+  .kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .kpi .k-label { font-size: 13px; color: var(--text-2); }
+  .kpi .k-value { font-size: clamp(26px, 3.4vw, 40px); font-weight: 650; letter-spacing: -.5px; margin-top: 4px; line-height: 1.1; word-break: break-word; }
+  .kpi .k-foot { font-size: 12px; color: var(--muted); margin-top: 6px; }
+  .neg { color: var(--critical-text) !important; }
+
+  .mini { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 16px; }
+  .mini .card { padding: 16px; }
+  .mini h3 { font-size: 13px; color: var(--text-2); font-weight: 600; margin-bottom: 10px; }
+  .kv { display: flex; justify-content: space-between; gap: 8px; padding: 3px 0; font-size: 14px; }
+  .kv span:first-child { color: var(--muted); }
+  .kv.total { border-top: 1px solid var(--border); margin-top: 6px; padding-top: 8px; font-weight: 600; }
+  .big2 { font-size: 26px; font-weight: 650; letter-spacing: -.3px; }
+  .delta { display: flex; align-items: baseline; gap: 8px; }
+  .delta .arrow { font-size: 16px; }
+
+  /* Donut */
+  .donut-wrap { display: grid; grid-template-columns: 240px 1fr; gap: 20px; align-items: center; }
+  .donut-wrap svg { width: 100%; max-width: 240px; height: auto; display: block; margin: 0 auto; }
+  .legend { list-style: none; margin: 0; padding: 0; }
+  .legend li { display: grid; grid-template-columns: 12px 1fr auto auto; gap: 10px; align-items: center; padding: 5px 4px; font-size: 14px; border-radius: 6px; }
+  .legend li.on { background: var(--surface-2); }
+  .sw { width: 12px; height: 12px; border-radius: 3px; }
+  .legend .pct { font-weight: 600; min-width: 46px; text-align: right; }
+  .legend .amt { color: var(--muted); font-size: 13px; min-width: 80px; text-align: right; }
+  .slice { cursor: default; transition: opacity .12s; }
+  .dim .slice { opacity: .35; }
+  .dim .slice.on { opacity: 1; }
+
+  /* Bars */
+  .bars svg { width: 100%; height: auto; display: block; }
+  .bar-rect { cursor: default; }
+  .axis-text { fill: var(--muted); font-size: 12px; }
+  .chart-note { font-size: 13px; color: var(--text-2); margin-top: 8px; }
+
+  /* Table */
+  .filters { display: flex; gap: 8px; align-items: center; }
+  .filters select { width: auto; padding: 6px 8px; font-size: 14px; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { text-align: left; padding: 9px 8px; border-bottom: 1px solid var(--border); font-size: 14px; vertical-align: middle; }
+  th { font-size: 12px; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); font-weight: 600; }
+  td.num, th.num { text-align: right; white-space: nowrap; }
+  td.note { color: var(--text-2); }
+  td.ops { white-space: nowrap; text-align: right; width: 1%; }
+  td.ops button { padding: 4px 9px; font-size: 13px; }
+  .tag { display: inline-block; font-size: 12px; padding: 2px 8px; border-radius: 999px; background: var(--surface-2); color: var(--text-2); border: 1px solid var(--border); white-space: nowrap; }
+  .tag.in { color: #9ec5f4; border-color: var(--accent-soft); }
+  .amt-in { color: #9ec5f4; }
+  .table-scroll { overflow-x: auto; }
+  .empty { color: var(--muted); padding: 20px 0; text-align: center; }
+
+  /* Budgets */
+  .budgets { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 28px; }
+  .budget { padding: 10px 0; border-bottom: 1px solid var(--border); }
+  .budget .b-top { display: grid; grid-template-columns: 1fr 120px; gap: 10px; align-items: center; }
+  .budget .b-name { font-weight: 500; }
+  .budget input { padding: 6px 8px; text-align: right; font-size: 14px; }
+  .track { height: 10px; background: var(--track); border-radius: 999px; overflow: hidden; margin-top: 8px; }
+  .fill { height: 100%; border-radius: 999px; background: var(--accent); transition: width .2s; }
+  .fill.warn { background: var(--warning); }
+  .fill.over { background: var(--critical); }
+  .b-info { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; color: var(--muted); margin-top: 6px; flex-wrap: wrap; }
+  .status { font-weight: 600; }
+  .status.warn { color: var(--warning); }
+  .status.over { color: var(--critical-text); }
+
+  /* Savings */
+  .savings { display: grid; grid-template-columns: minmax(260px, 340px) 1fr; gap: 24px; }
+  .goal-row { display: grid; grid-template-columns: 1fr 140px; gap: 10px; align-items: center; margin-top: 14px; }
+
+  #tooltip {
+    position: fixed; pointer-events: none; z-index: 10; display: none;
+    background: #000; border: 1px solid #3a3a36; border-radius: 8px;
+    padding: 8px 10px; font-size: 13px; line-height: 1.35; max-width: 240px;
+    box-shadow: 0 6px 20px rgba(0,0,0,.4);
+  }
+  #tooltip b { display: block; margin-bottom: 2px; }
+  #tooltip .t-muted { color: var(--text-2); }
+
+  .toast {
+    position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%);
+    background: var(--surface-2); border: 1px solid var(--border); padding: 10px 16px;
+    border-radius: 8px; font-size: 14px; display: none; z-index: 20;
+  }
+
+  @media (max-width: 980px) {
+    .top, .grid-2, .savings { grid-template-columns: 1fr; }
+    .budgets { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 640px) {
+    .kpis, .mini { grid-template-columns: 1fr; gap: 10px; }
+    .donut-wrap { grid-template-columns: 1fr; }
+    .month-nav .label { min-width: 120px; }
+    td.note { display: none; }
+    td.ops button { padding: 4px 7px; }
+    th, td { padding: 8px 5px; }
+    th.note { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="bar">
+    <div>
+      <h1>Mis finanzas</h1>
+      <div class="sub">Gastos e ingresos semanales y mensuales</div>
+    </div>
+    <div class="month-nav">
+      <button class="icon" id="prevMonth" aria-label="Mes anterior">‹</button>
+      <div class="label" id="monthLabel"></div>
+      <button class="icon" id="nextMonth" aria-label="Mes siguiente">›</button>
+      <button class="ghost" id="todayBtn">Hoy</button>
+    </div>
+    <div class="actions">
+      <button id="exportBtn">Exportar JSON</button>
+      <button id="importBtn">Importar JSON</button>
+      <input type="file" id="importFile" accept="application/json,.json" hidden>
+      <button class="ghost" id="sampleBtn">Cargar ejemplo</button>
+      <button class="ghost danger" id="resetBtn">Borrar todo</button>
+    </div>
+  </header>
+
+  <!-- Arriba: formulario + números grandes -->
+  <div class="top">
+    <div class="card">
+      <h2 id="formTitle">Nuevo movimiento</h2>
+      <form id="moveForm" autocomplete="off">
+        <div class="row">
+          <div class="seg" role="radiogroup" aria-label="Tipo">
+            <input type="radio" name="type" id="tGasto" value="gasto" checked><label for="tGasto">Gasto</label>
+            <input type="radio" name="type" id="tIngreso" value="ingreso"><label for="tIngreso">Ingreso</label>
+          </div>
+        </div>
+        <div class="row">
+          <label class="lbl" for="fAmount">Monto</label>
+          <input type="number" id="fAmount" min="0.01" step="0.01" inputmode="decimal" placeholder="0" required>
+        </div>
+        <div class="row">
+          <label class="lbl" for="fCategory">Categoría</label>
+          <select id="fCategory" required></select>
+        </div>
+        <div class="row">
+          <label class="lbl" for="fDate">Fecha</label>
+          <input type="date" id="fDate" required>
+        </div>
+        <div class="row">
+          <label class="lbl" for="fNote">Nota (opcional)</label>
+          <input type="text" id="fNote" maxlength="120" placeholder="Ej.: compra semanal">
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="primary" id="submitBtn">Agregar</button>
+          <button type="button" id="cancelEdit" hidden>Cancelar</button>
+        </div>
+        <div class="hint" id="formHint">Los movimientos en “Ahorro” van a la sección de ahorros y no cuentan como gasto.</div>
+      </form>
+    </div>
+
+    <div>
+      <div class="kpis">
+        <div class="card kpi">
+          <div class="k-label">Ingresos del mes</div>
+          <div class="k-value" id="kIncome">$0</div>
+          <div class="k-foot" id="kIncomeFoot"></div>
+        </div>
+        <div class="card kpi">
+          <div class="k-label">Gastos del mes</div>
+          <div class="k-value" id="kExpense">$0</div>
+          <div class="k-foot" id="kExpenseFoot"></div>
+        </div>
+        <div class="card kpi">
+          <div class="k-label">Queda</div>
+          <div class="k-value" id="kLeft">$0</div>
+          <div class="k-foot">Ingresos − gastos</div>
+        </div>
+      </div>
+
+      <div class="mini">
+        <div class="card">
+          <h3 id="weekTitle">Esta semana</h3>
+          <div class="kv"><span>Ingresos</span><span id="wIncome"></span></div>
+          <div class="kv"><span>Gastos</span><span id="wExpense"></span></div>
+          <div class="kv total"><span>Queda</span><span id="wLeft"></span></div>
+        </div>
+        <div class="card">
+          <h3>Dinero disponible</h3>
+          <div class="big2" id="avail">$0</div>
+          <div class="kv"><span>Apartado a ahorro</span><span id="availSaved"></span></div>
+          <div class="kv" id="perDayRow"><span id="perDayLabel">Por día restante</span><span id="perDay"></span></div>
+        </div>
+        <div class="card">
+          <h3>Vs. promedio de 6 meses</h3>
+          <div class="delta"><span class="big2" id="cmpPct">—</span><span class="arrow" id="cmpArrow"></span></div>
+          <div class="kv"><span>Promedio</span><span id="cmpAvg">—</span></div>
+          <div class="sub" id="cmpText"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Gráficos -->
+  <div class="grid-2">
+    <div class="card">
+      <h2>Gastos por categoría</h2>
+      <div class="donut-wrap">
+        <div id="donut"></div>
+        <ul class="legend" id="legend"></ul>
+      </div>
+    </div>
+    <div class="card bars">
+      <h2>Gasto mensual: últimos 6 meses y este mes</h2>
+      <div id="barChart"></div>
+      <div class="chart-note" id="barNote"></div>
+    </div>
+  </div>
+
+  <!-- Movimientos -->
+  <section class="card">
+    <div class="card-head">
+      <h2>Movimientos del mes</h2>
+      <div class="filters">
+        <label class="sub" for="filterCat">Categoría</label>
+        <select id="filterCat"></select>
+      </div>
+    </div>
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>Fecha</th><th>Categoría</th><th class="note">Nota</th><th class="num">Monto</th><th></th></tr></thead>
+        <tbody id="moveRows"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- Presupuestos -->
+  <section class="card">
+    <div class="card-head">
+      <h2>Presupuestos mensuales</h2>
+      <span class="sub" id="budgetSummary"></span>
+    </div>
+    <div class="budgets" id="budgets"></div>
+  </section>
+
+  <!-- Ahorros -->
+  <section class="card">
+    <div class="card-head">
+      <h2>Ahorros</h2>
+      <span class="sub">No se cuentan en los gastos semanales ni mensuales</span>
+    </div>
+    <div class="savings">
+      <div>
+        <div class="k-label sub">Total ahorrado</div>
+        <div class="kpi"><div class="k-value" id="sTotal">$0</div></div>
+        <div class="kv" style="margin-top:10px"><span>Aportes este mes</span><span id="sIn"></span></div>
+        <div class="kv"><span>Retiros este mes</span><span id="sOut"></span></div>
+        <div class="goal-row">
+          <label class="sub" for="sGoal">Meta de ahorro</label>
+          <input type="number" id="sGoal" min="0" step="1" placeholder="Sin meta">
+        </div>
+        <div class="track"><div class="fill" id="sGoalFill" style="width:0"></div></div>
+        <div class="b-info"><span id="sGoalText"></span></div>
+
+        <form id="saveForm" style="margin-top:20px" autocomplete="off">
+          <h3 style="font-size:14px;margin-bottom:10px" id="saveFormTitle">Nuevo movimiento de ahorro</h3>
+          <div class="row">
+            <div class="seg" role="radiogroup" aria-label="Tipo de ahorro">
+              <input type="radio" name="stype" id="sAporte" value="aporte" checked><label for="sAporte">Aporte</label>
+              <input type="radio" name="stype" id="sRetiro" value="retiro"><label for="sRetiro">Retiro</label>
+            </div>
+          </div>
+          <div class="row">
+            <label class="lbl" for="sAmount">Monto</label>
+            <input type="number" id="sAmount" min="0.01" step="0.01" inputmode="decimal" required>
+          </div>
+          <div class="row">
+            <label class="lbl" for="sDate">Fecha</label>
+            <input type="date" id="sDate" required>
+          </div>
+          <div class="row">
+            <label class="lbl" for="sNote">Nota (opcional)</label>
+            <input type="text" id="sNote" maxlength="120" placeholder="Ej.: fondo de emergencia">
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="primary" id="sSubmit">Agregar</button>
+            <button type="button" id="sCancel" hidden>Cancelar</button>
+          </div>
+        </form>
+      </div>
+      <div>
+        <h3 style="font-size:14px;margin-bottom:10px;color:var(--text-2)">Historial de ahorros</h3>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>Fecha</th><th>Tipo</th><th class="note">Nota</th><th class="num">Monto</th><th class="num">Saldo</th><th></th></tr></thead>
+            <tbody id="saveRows"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<div id="tooltip"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+(() => {
+  'use strict';
+
+  // ---------- Configuración ----------
+  const EXPENSE_CATS = [
+    ['supermercado', 'Supermercado'],
+    ['comidas', 'Comidas afuera'],
+    ['transporte', 'Transporte'],
+    ['alquiler', 'Alquiler y servicios'],
+    ['salud', 'Salud'],
+    ['suscripciones', 'Suscripciones'],
+    ['ropa', 'Ropa'],
+    ['ocio', 'Ocio'],
+    ['ahorro', 'Ahorro'],
+    ['otros', 'Otros'],
+  ];
+  const INCOME_CATS = [
+    ['sueldo', 'Sueldo'],
+    ['extras', 'Extras / freelance'],
+    ['reintegros', 'Reintegros'],
+    ['otros_ing', 'Otros ingresos'],
+  ];
+  const SPEND_CATS = EXPENSE_CATS.filter(([k]) => k !== 'ahorro'); // los que cuentan como gasto
+  const LABELS = Object.fromEntries([...EXPENSE_CATS, ...INCOME_CATS, ['aporte', 'Aporte'], ['retiro', 'Retiro']]);
+  // Una sola familia de color (azul), de claro a oscuro; el más grande es el más claro.
+  const RAMP = ['#cde2fb', '#aacdf5', '#86b6ef', '#6da7ec', '#5598e7', '#3987e5', '#2a78d6', '#256abf', '#1c5cab'];
+  const STORE_KEY = 'fina-app-v1';
+
+  // ---------- Utilidades ----------
+  const $ = (id) => document.getElementById(id);
+  const pad = (n) => String(n).padStart(2, '0');
+  const toISO = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  const parseISO = (s) => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); };
+  const ymOf = (s) => s.slice(0, 7);
+  const ymKey = (y, m) => `${y}-${pad(m + 1)}`; // m 0-based
+  const shiftYM = (ym, delta) => { const [y, m] = ym.split('-').map(Number); const d = new Date(y, m - 1 + delta, 1); return ymKey(d.getFullYear(), d.getMonth()); };
+  const daysIn = (ym) => { const [y, m] = ym.split('-').map(Number); return new Date(y, m, 0).getDate(); };
+  const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const round2 = (n) => Math.round(n * 100) / 100;
+
+  const nf = new Intl.NumberFormat('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+  const money = (n) => (n < 0 ? '−' : '') + '$' + nf.format(Math.abs(round2(n)));
+  const pctFmt = (n) => nf.format(Math.round(n * 10) / 10) + '%';
+  const monthName = (ym, short) => {
+    const [y, m] = ym.split('-').map(Number);
+    const s = new Date(y, m - 1, 1).toLocaleDateString('es-AR', short ? { month: 'short' } : { month: 'long', year: 'numeric' });
+    return s.charAt(0).toUpperCase() + s.slice(1).replace('.', '');
+  };
+  const dayFmt = (s) => parseISO(s).toLocaleDateString('es-AR', { weekday: 'short', day: 'numeric', month: 'short' }).replace(/\./g, '');
+
+  const todayISO = () => toISO(new Date());
+
+  // ---------- Estado ----------
+  let state = load() || sampleState();
+  let viewYM = ymOf(todayISO());
+  let editingId = null;
+  let editingSaveId = null;
+
+  function load() {
+    try {
+      const raw = localStorage.getItem(STORE_KEY);
+      if (!raw) return null;
+      const data = JSON.parse(raw);
+      return validate(data) ? normalize(data) : null;
+    } catch { return null; }
+  }
+  function save() {
+    try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch { /* sin almacenamiento */ }
+  }
+  function defaultBudgets() {
+    return { supermercado: 6000, comidas: 1500, transporte: 1500, alquiler: 11000, salud: 2000, suscripciones: 600, ropa: 2000, ocio: 2000, otros: 800 };
+  }
+  function validate(d) {
+    if (!d || typeof d !== 'object' || !Array.isArray(d.movements)) return false;
+    return d.movements.every((m) => m && ['gasto', 'ingreso', 'ahorro'].includes(m.type)
+      && typeof m.amount === 'number' && isFinite(m.amount) && m.amount > 0
+      && typeof m.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(m.date)
+      && typeof m.category === 'string');
+  }
+  function normalize(d) {
+    return {
+      movements: d.movements.map((m) => ({ id: m.id || uid(), type: m.type, category: m.category, amount: round2(m.amount), date: m.date, note: String(m.note || '') })),
+      budgets: Object.assign(defaultBudgets(), d.budgets && typeof d.budgets === 'object' ? d.budgets : {}),
+      savingsGoal: typeof d.savingsGoal === 'number' ? d.savingsGoal : 0,
+    };
+  }
+
+  // ---------- Datos de ejemplo ----------
+  function sampleState() {
+    const ym = ymOf(todayISO());
+    const dim = daysIn(ym);
+    const at = (ymx, day) => `${ymx}-${pad(Math.min(day, daysIn(ymx)))}`;
+    const mv = [];
+    const add = (type, category, amount, date, note) => mv.push({ id: uid(), type, category, amount, date, note });
+
+    // Mes de ejemplo (actual): ~22 movimientos en todas las categorías
+    const cur = [
+      ['ingreso', 'sueldo', 28000, 1, 'Sueldo'],
+      ['gasto', 'alquiler', 8500, 1, 'Alquiler'],
+      ['ahorro', 'aporte', 3000, 2, 'Fondo de emergencia'],
+      ['gasto', 'supermercado', 1850, 3, 'Compra grande'],
+      ['gasto', 'transporte', 600, 4, 'Carga tarjeta'],
+      ['gasto', 'suscripciones', 299, 5, 'Streaming'],
+      ['gasto', 'alquiler', 780, 7, 'Luz'],
+      ['gasto', 'comidas', 520, 8, 'Almuerzo trabajo'],
+      ['gasto', 'salud', 950, 10, 'Farmacia'],
+      ['gasto', 'supermercado', 1420, 11, 'Verdulería y almacén'],
+      ['gasto', 'ocio', 650, 12, 'Cine'],
+      ['gasto', 'ropa', 1300, 14, 'Zapatillas'],
+      ['ingreso', 'extras', 5200, 15, 'Trabajo freelance'],
+      ['gasto', 'transporte', 450, 16, 'Taxi'],
+      ['gasto', 'suscripciones', 149, 17, 'Música'],
+      ['gasto', 'comidas', 780, 18, 'Cena con amigos'],
+      ['gasto', 'supermercado', 1960, 20, 'Compra quincenal'],
+      ['gasto', 'alquiler', 420, 21, 'Internet'],
+      ['gasto', 'otros', 350, 22, 'Regalo'],
+      ['gasto', 'ocio', 900, 24, 'Recital'],
+      ['gasto', 'salud', 400, 26, 'Consulta'],
+      ['gasto', 'comidas', 340, 27, 'Delivery'],
+    ];
+    cur.forEach(([t, c, a, d, n]) => add(t, c, a, `${ym}-${pad(Math.min(d, dim))}`, n));
+
+    // Historia resumida de los 6 meses anteriores (para el gráfico de barras y la comparación)
+    const factors = [0.92, 1.05, 0.97, 1.12, 0.88, 1.0];
+    for (let i = 1; i <= 6; i++) {
+      const p = shiftYM(ym, -i);
+      const f = factors[i - 1];
+      add('ingreso', 'sueldo', 28000, at(p, 1), 'Sueldo');
+      if (i % 2) add('ingreso', 'extras', Math.round(3500 * f), at(p, 15), 'Trabajo freelance');
+      add('gasto', 'alquiler', 8500, at(p, 1), 'Alquiler');
+      add('gasto', 'alquiler', Math.round(1200 * f), at(p, 8), 'Servicios');
+      add('gasto', 'supermercado', Math.round(5100 * f), at(p, 10), 'Supermercado del mes');
+      add('gasto', 'comidas', Math.round(1400 * f), at(p, 18), 'Salidas a comer');
+      add('gasto', 'transporte', Math.round(1000 * f), at(p, 12), 'Transporte del mes');
+      add('gasto', 'suscripciones', 448, at(p, 5), 'Suscripciones');
+      add('gasto', 'salud', Math.round(900 * f), at(p, 20), 'Salud');
+      add('gasto', 'ocio', Math.round(1300 * f), at(p, 22), 'Ocio');
+      if (i % 3 === 0) add('gasto', 'ropa', Math.round(1800 * f), at(p, 25), 'Ropa');
+      add('gasto', 'otros', Math.round(300 * f), at(p, 26), 'Varios');
+      add('ahorro', 'aporte', 3000, at(p, 2), 'Ahorro mensual');
+    }
+    add('ahorro', 'retiro', 2500, at(shiftYM(ym, -3), 16), 'Arreglo del auto');
+
+    return { movements: mv, budgets: defaultBudgets(), savingsGoal: 30000 };
+  }
+
+  // ---------- Cálculos ----------
+  const sum = (arr) => arr.reduce((s, m) => s + m.amount, 0);
+  const inMonth = (ym) => state.movements.filter((m) => ymOf(m.date) === ym);
+  const expensesOf = (list) => list.filter((m) => m.type === 'gasto');
+  const incomesOf = (list) => list.filter((m) => m.type === 'ingreso');
+
+  function weekRange() {
+    // Semana (lunes a domingo) de hoy si se mira el mes actual; si no, la última semana del mes elegido.
+    const t = todayISO();
+    const ref = ymOf(t) === viewYM ? parseISO(t) : parseISO(`${viewYM}-${pad(daysIn(viewYM))}`);
+    const start = new Date(ref); start.setDate(ref.getDate() - ((ref.getDay() + 6) % 7));
+    const end = new Date(start); end.setDate(start.getDate() + 6);
+    return [toISO(start), toISO(end)];
+  }
+
+  // ---------- Render ----------
+  function render() {
+    $('monthLabel').textContent = monthName(viewYM);
+    const month = inMonth(viewYM);
+    const inc = sum(incomesOf(month));
+    const exp = sum(expensesOf(month));
+    const left = inc - exp;
+
+    $('kIncome').textContent = money(inc);
+    $('kExpense').textContent = money(exp);
+    $('kLeft').textContent = money(left);
+    $('kLeft').classList.toggle('neg', left < 0);
+    $('kIncomeFoot').textContent = `${incomesOf(month).length} movimientos`;
+    $('kExpenseFoot').textContent = inc > 0 ? `${pctFmt(exp / inc * 100)} de los ingresos` : `${expensesOf(month).length} movimientos`;
+
+    // Semana
+    const [ws, we] = weekRange();
+    const week = state.movements.filter((m) => m.date >= ws && m.date <= we);
+    const wInc = sum(incomesOf(week)), wExp = sum(expensesOf(week));
+    $('weekTitle').textContent = `Semana ${parseISO(ws).getDate()}/${parseISO(ws).getMonth() + 1} – ${parseISO(we).getDate()}/${parseISO(we).getMonth() + 1}`;
+    $('wIncome').textContent = money(wInc);
+    $('wExpense').textContent = money(wExp);
+    $('wLeft').textContent = money(wInc - wExp);
+    $('wLeft').classList.toggle('neg', wInc - wExp < 0);
+
+    // Disponible: lo que queda después de gastos y de lo apartado a ahorro
+    const sIn = sum(month.filter((m) => m.type === 'ahorro' && m.category === 'aporte'));
+    const sOut = sum(month.filter((m) => m.type === 'ahorro' && m.category === 'retiro'));
+    const avail = left - sIn + sOut;
+    $('avail').textContent = money(avail);
+    $('avail').classList.toggle('neg', avail < 0);
+    $('availSaved').textContent = money(sIn - sOut);
+    const t = todayISO();
+    if (ymOf(t) === viewYM) {
+      const daysLeft = daysIn(viewYM) - parseISO(t).getDate() + 1;
+      $('perDayRow').hidden = false;
+      $('perDayLabel').textContent = `Por día (${daysLeft} días restantes)`;
+      $('perDay').textContent = avail > 0 ? money(avail / daysLeft) : money(0);
+    } else {
+      $('perDayRow').hidden = true;
+    }
+
+    // Comparación vs promedio de los 6 meses anteriores (solo meses con datos)
+    const prev = [];
+    for (let i = 1; i <= 6; i++) {
+      const p = shiftYM(viewYM, -i);
+      const list = inMonth(p);
+      prev.push({ ym: p, exp: sum(expensesOf(list)), has: list.length > 0 });
+    }
+    const withData = prev.filter((p) => p.has);
+    const avg = withData.length ? withData.reduce((s, p) => s + p.exp, 0) / withData.length : 0;
+    if (avg > 0) {
+      const d = (exp - avg) / avg * 100;
+      $('cmpPct').textContent = (d > 0 ? '+' : d < 0 ? '−' : '') + pctFmt(Math.abs(d));
+      $('cmpArrow').textContent = d > 0 ? '▲' : d < 0 ? '▼' : '';
+      $('cmpArrow').style.color = d > 0 ? 'var(--critical-text)' : 'var(--good)';
+      $('cmpAvg').textContent = money(avg);
+      $('cmpText').textContent = d > 0.05 ? `Venís gastando ${pctFmt(d)} más que tu promedio.`
+        : d < -0.05 ? `Venís gastando ${pctFmt(-d)} menos que tu promedio.` : 'Estás igual que tu promedio.';
+      if (withData.length < 6) $('cmpText').textContent += ` (promedio de ${withData.length} ${withData.length === 1 ? 'mes' : 'meses'} con datos)`;
+    } else {
+      $('cmpPct').textContent = '—'; $('cmpArrow').textContent = '';
+      $('cmpAvg').textContent = '—';
+      $('cmpText').textContent = 'Todavía no hay meses anteriores para comparar.';
+    }
+
+    renderDonut(month, exp);
+    renderBars(prev, exp, avg);
+    renderList(month);
+    renderBudgets(month);
+    renderSavings();
+    fillFilter();
+  }
+
+  // ----- Gráfico de torta -----
+  function renderDonut(month, total) {
+    const byCat = SPEND_CATS.map(([k, label]) => ({ k, label, v: sum(month.filter((m) => m.type === 'gasto' && m.category === k)) }))
+      .filter((c) => c.v > 0).sort((a, b) => b.v - a.v);
+    byCat.forEach((c, i) => { c.color = RAMP[Math.min(i, RAMP.length - 1)]; c.pct = c.v / total * 100; });
+
+    const S = 240, cx = 120, cy = 120, R = 112, r = 74;
+    let svg = `<svg viewBox="0 0 ${S} ${S}" role="img" aria-label="Gráfico de torta de gastos por categoría">`;
+    if (!byCat.length) {
+      svg += `<circle cx="${cx}" cy="${cy}" r="${(R + r) / 2}" fill="none" stroke="var(--track)" stroke-width="${R - r}"/>`;
+    } else if (byCat.length === 1) {
+      svg += `<circle class="slice" data-k="${byCat[0].k}" cx="${cx}" cy="${cy}" r="${(R + r) / 2}" fill="none" stroke="${byCat[0].color}" stroke-width="${R - r}"/>`;
+    } else {
+      let a0 = -Math.PI / 2;
+      byCat.forEach((c) => {
+        const a1 = a0 + (c.v / total) * Math.PI * 2;
+        const large = a1 - a0 > Math.PI ? 1 : 0;
+        const p = (rad, a) => `${(cx + rad * Math.cos(a)).toFixed(2)} ${(cy + rad * Math.sin(a)).toFixed(2)}`;
+        const d = `M${p(R, a0)} A${R} ${R} 0 ${large} 1 ${p(R, a1)} L${p(r, a1)} A${r} ${r} 0 ${large} 0 ${p(r, a0)} Z`;
+        svg += `<path class="slice" data-k="${c.k}" d="${d}" fill="${c.color}" stroke="var(--surface)" stroke-width="2" stroke-linejoin="round"/>`;
+        a0 = a1;
+      });
+    }
+    svg += `<text x="${cx}" y="${cy - 6}" text-anchor="middle" fill="var(--text)" font-size="22" font-weight="650">${esc(money(total))}</text>`;
+    svg += `<text x="${cx}" y="${cy + 16}" text-anchor="middle" fill="var(--muted)" font-size="12">Total de gastos</text></svg>`;
+    $('donut').innerHTML = svg;
+
+    $('legend').innerHTML = byCat.length ? byCat.map((c) =>
+      `<li data-k="${c.k}"><span class="sw" style="background:${c.color}"></span><span>${esc(c.label)}</span><span class="pct">${pctFmt(c.pct)}</span><span class="amt">${money(c.v)}</span></li>`
+    ).join('') : '<li class="empty" style="display:block">Sin gastos este mes</li>';
+
+    const info = Object.fromEntries(byCat.map((c) => [c.k, c]));
+    const highlight = (k) => {
+      $('donut').classList.toggle('dim', !!k);
+      document.querySelectorAll('#donut .slice').forEach((el) => el.classList.toggle('on', el.dataset.k === k));
+      document.querySelectorAll('#legend li').forEach((el) => el.classList.toggle('on', el.dataset.k === k));
+    };
+    const tipFor = (k) => `<b>${esc(info[k].label)}</b>${money(info[k].v)} <span class="t-muted">· ${pctFmt(info[k].pct)} del total</span>`;
+    document.querySelectorAll('#donut .slice, #legend li[data-k]').forEach((el) => {
+      el.addEventListener('mousemove', (e) => { highlight(el.dataset.k); showTip(e, tipFor(el.dataset.k)); });
+      el.addEventListener('mouseleave', () => { highlight(null); hideTip(); });
+    });
+  }
+
+  // ----- Gráfico de barras -----
+  function renderBars(prev, curExp, avg) {
+    const data = [...prev].reverse().map((p) => ({ ym: p.ym, v: p.exp, cur: false }));
+    data.push({ ym: viewYM, v: curExp, cur: true });
+    const W = 600, H = 260, L = 56, Rm = 12, T = 16, B = 30;
+    const max = Math.max(...data.map((d) => d.v), avg, 1);
+    const step = niceStep(max / 4);
+    const top = Math.ceil(max / step) * step;
+    const y = (v) => T + (H - T - B) * (1 - v / top);
+    const slot = (W - L - Rm) / data.length;
+    const bw = Math.min(46, slot * 0.56);
+
+    let svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Gasto de los últimos meses">`;
+    for (let v = 0; v <= top + 1e-9; v += step) {
+      svg += `<line x1="${L}" x2="${W - Rm}" y1="${y(v)}" y2="${y(v)}" stroke="var(--border)" stroke-width="1"/>`;
+      svg += `<text class="axis-text" x="${L - 8}" y="${y(v) + 4}" text-anchor="end">${esc(shortMoney(v))}</text>`;
+    }
+    data.forEach((d, i) => {
+      const x = L + slot * i + (slot - bw) / 2;
+      const y0 = y(0), y1 = y(d.v), h = y0 - y1;
+      const rr = Math.min(4, h);
+      const fill = d.cur ? '#3987e5' : '#1c5cab';
+      if (h > 0.5) {
+        svg += `<path d="M${x} ${y0} V${y1 + rr} Q${x} ${y1} ${x + rr} ${y1} H${x + bw - rr} Q${x + bw} ${y1} ${x + bw} ${y1 + rr} V${y0} Z" fill="${fill}"/>`;
+      }
+      // zona de hover más grande que la barra
+      svg += `<rect class="bar-rect" data-i="${i}" x="${L + slot * i}" y="${T}" width="${slot}" height="${H - T - B}" fill="transparent"/>`;
+      svg += `<text class="axis-text" x="${x + bw / 2}" y="${H - 10}" text-anchor="middle" ${d.cur ? 'fill="var(--text)" font-weight="600"' : ''}>${esc(monthName(d.ym, true))}</text>`;
+      if (d.cur && d.v > 0) svg += `<text x="${x + bw / 2}" y="${y1 - 6}" text-anchor="middle" fill="var(--text)" font-size="12" font-weight="600">${esc(shortMoney(d.v))}</text>`;
+    });
+    if (avg > 0) {
+      svg += `<line x1="${L}" x2="${W - Rm}" y1="${y(avg)}" y2="${y(avg)}" stroke="var(--text-2)" stroke-width="1.5" stroke-dasharray="5 4"/>`;
+      svg += `<text x="${L + 4}" y="${y(avg) - 6}" fill="var(--text-2)" font-size="12">Promedio ${esc(shortMoney(avg))}</text>`;
+    }
+    svg += '</svg>';
+    $('barChart').innerHTML = svg;
+
+    document.querySelectorAll('#barChart .bar-rect').forEach((el) => {
+      const d = data[+el.dataset.i];
+      el.addEventListener('mousemove', (e) => {
+        const diff = avg > 0 ? (d.v - avg) / avg * 100 : null;
+        showTip(e, `<b>${esc(monthName(d.ym))}</b>${money(d.v)}${diff !== null ? ` <span class="t-muted">· ${diff >= 0 ? '+' : '−'}${pctFmt(Math.abs(diff))} vs. promedio</span>` : ''}`);
+      });
+      el.addEventListener('mouseleave', hideTip);
+    });
+    $('barNote').textContent = avg > 0
+      ? `La barra clara es ${monthName(viewYM).toLowerCase()}; la línea punteada es el promedio de los meses anteriores.`
+      : 'Cargá movimientos en meses anteriores para ver la evolución.';
+  }
+  function niceStep(raw) {
+    if (raw <= 0) return 1;
+    const p = Math.pow(10, Math.floor(Math.log10(raw)));
+    const n = raw / p;
+    return (n <= 1 ? 1 : n <= 2 ? 2 : n <= 2.5 ? 2.5 : n <= 5 ? 5 : 10) * p;
+  }
+  function shortMoney(v) {
+    if (Math.abs(v) >= 1e6) return '$' + nf.format(Math.round(v / 1e5) / 10) + 'M';
+    if (Math.abs(v) >= 1e4) return '$' + nf.format(Math.round(v / 100) / 10) + 'k';
+    return '$' + nf.format(Math.round(v));
+  }
+
+  // ----- Lista de movimientos -----
+  function fillFilter() {
+    const sel = $('filterCat');
+    const val = sel.value || 'all';
+    sel.innerHTML = `<option value="all">Todas</option><option value="_gastos">Solo gastos</option><option value="_ingresos">Solo ingresos</option>`
+      + `<optgroup label="Gastos">${EXPENSE_CATS.map(([k, l]) => `<option value="${k}">${esc(l)}</option>`).join('')}</optgroup>`
+      + `<optgroup label="Ingresos">${INCOME_CATS.map(([k, l]) => `<option value="${k}">${esc(l)}</option>`).join('')}</optgroup>`;
+    sel.value = val;
+  }
+  function renderList(month) {
+    const f = $('filterCat').value || 'all';
+    let list = month.slice();
+    if (f === '_gastos') list = list.filter((m) => m.type === 'gasto');
+    else if (f === '_ingresos') list = list.filter((m) => m.type === 'ingreso');
+    else if (f === 'ahorro') list = list.filter((m) => m.type === 'ahorro');
+    else if (f !== 'all') list = list.filter((m) => m.type !== 'ahorro' && m.category === f);
+    list.sort((a, b) => b.date.localeCompare(a.date));
+
+    $('moveRows').innerHTML = list.length ? list.map((m) => {
+      const isIn = m.type === 'ingreso';
+      const label = m.type === 'ahorro' ? `Ahorro · ${LABELS[m.category] || m.category}` : (LABELS[m.category] || m.category);
+      const sign = isIn ? '+' : m.type === 'ahorro' ? (m.category === 'retiro' ? '↩ ' : '→ ') : '−';
+      return `<tr>
+        <td>${esc(dayFmt(m.date))}</td>
+        <td><span class="tag ${isIn ? 'in' : ''}">${esc(label)}</span></td>
+        <td class="note">${esc(m.note)}</td>
+        <td class="num ${isIn ? 'amt-in' : ''}">${sign}${money(m.amount)}</td>
+        <td class="ops"><button data-edit="${m.id}">Editar</button> <button class="danger" data-del="${m.id}" aria-label="Borrar">Borrar</button></td>
+      </tr>`;
+    }).join('') : `<tr><td colspan="5" class="empty">No hay movimientos ${f === 'all' ? 'este mes' : 'con ese filtro'}.</td></tr>`;
+  }
+
+  // ----- Presupuestos -----
+  function renderBudgets(month) {
+    let over = 0, warn = 0;
+    $('budgets').innerHTML = SPEND_CATS.map(([k, label]) => {
+      const spent = sum(month.filter((m) => m.type === 'gasto' && m.category === k));
+      const cap = +state.budgets[k] || 0;
+      const pct = cap > 0 ? spent / cap * 100 : 0;
+      const cls = cap > 0 && spent > cap ? 'over' : cap > 0 && pct >= 80 ? 'warn' : '';
+      if (cls === 'over') over++; if (cls === 'warn') warn++;
+      const status = cls === 'over' ? `<span class="status over">✕ Excedido por ${money(spent - cap)}</span>`
+        : cls === 'warn' ? `<span class="status warn">⚠ Cerca del tope · te quedan ${money(cap - spent)}</span>`
+        : cap > 0 ? `<span>Te quedan ${money(cap - spent)}</span>` : '<span>Sin tope</span>';
+      return `<div class="budget">
+        <div class="b-top"><span class="b-name">${esc(label)}</span>
+          <input type="number" min="0" step="1" data-budget="${k}" value="${cap || ''}" placeholder="Tope" aria-label="Tope mensual de ${esc(label)}"></div>
+        <div class="track"><div class="fill ${cls}" style="width:${Math.min(pct, 100)}%"></div></div>
+        <div class="b-info"><span>${money(spent)} de ${cap > 0 ? money(cap) : '—'}${cap > 0 ? ` · ${pctFmt(pct)}` : ''}</span>${status}</div>
+      </div>`;
+    }).join('');
+    const totalCap = SPEND_CATS.reduce((s, [k]) => s + (+state.budgets[k] || 0), 0);
+    const parts = [`Tope total ${money(totalCap)}`];
+    if (over) parts.push(`${over} excedido${over > 1 ? 's' : ''}`);
+    if (warn) parts.push(`${warn} cerca del tope`);
+    $('budgetSummary').textContent = parts.join(' · ');
+  }
+
+  // ----- Ahorros -----
+  function renderSavings() {
+    const all = state.movements.filter((m) => m.type === 'ahorro').sort((a, b) => a.date.localeCompare(b.date));
+    let bal = 0;
+    const rows = all.map((m) => { bal += m.category === 'retiro' ? -m.amount : m.amount; return { m, bal }; });
+    $('sTotal').textContent = money(bal);
+    $('sTotal').classList.toggle('neg', bal < 0);
+    const month = all.filter((m) => ymOf(m.date) === viewYM);
+    $('sIn').textContent = money(sum(month.filter((m) => m.category === 'aporte')));
+    $('sOut').textContent = money(sum(month.filter((m) => m.category === 'retiro')));
+
+    const goal = +state.savingsGoal || 0;
+    if (document.activeElement !== $('sGoal')) $('sGoal').value = goal || '';
+    const gp = goal > 0 ? Math.max(0, bal) / goal * 100 : 0;
+    $('sGoalFill').style.width = Math.min(gp, 100) + '%';
+    $('sGoalText').textContent = goal > 0
+      ? (bal >= goal ? `¡Meta alcanzada! ${pctFmt(gp)}` : `${pctFmt(gp)} de la meta · faltan ${money(goal - bal)}`)
+      : 'Definí una meta para ver tu avance.';
+
+    $('saveRows').innerHTML = rows.length ? rows.reverse().map(({ m, bal }) => `<tr>
+        <td>${esc(dayFmt(m.date))} <span class="sub">${parseISO(m.date).getFullYear()}</span></td>
+        <td><span class="tag ${m.category === 'aporte' ? 'in' : ''}">${m.category === 'aporte' ? 'Aporte' : 'Retiro'}</span></td>
+        <td class="note">${esc(m.note)}</td>
+        <td class="num">${m.category === 'retiro' ? '−' : '+'}${money(m.amount)}</td>
+        <td class="num">${money(bal)}</td>
+        <td class="ops"><button data-edit="${m.id}">Editar</button> <button class="danger" data-del="${m.id}">Borrar</button></td>
+      </tr>`).join('') : '<tr><td colspan="6" class="empty">Todavía no hay ahorros cargados.</td></tr>';
+  }
+
+  // ---------- Tooltip y avisos ----------
+  const tip = $('tooltip');
+  function showTip(e, html) {
+    tip.innerHTML = html; tip.style.display = 'block';
+    const w = tip.offsetWidth, h = tip.offsetHeight;
+    let x = e.clientX + 14, yy = e.clientY + 14;
+    if (x + w > innerWidth - 8) x = e.clientX - w - 14;
+    if (yy + h > innerHeight - 8) yy = e.clientY - h - 14;
+    tip.style.left = x + 'px'; tip.style.top = yy + 'px';
+  }
+  function hideTip() { tip.style.display = 'none'; }
+  let toastTimer;
+  function toast(msg) {
+    const t = $('toast'); t.textContent = msg; t.style.display = 'block';
+    clearTimeout(toastTimer); toastTimer = setTimeout(() => (t.style.display = 'none'), 2400);
+  }
+
+  // ---------- Formulario principal ----------
+  const formType = () => document.querySelector('input[name=type]:checked').value;
+  function fillCategories(keep) {
+    const cats = formType() === 'gasto' ? EXPENSE_CATS : INCOME_CATS;
+    $('fCategory').innerHTML = cats.map(([k, l]) => `<option value="${k}">${esc(l)}</option>`).join('');
+    if (keep && cats.some(([k]) => k === keep)) $('fCategory').value = keep;
+  }
+  function defaultDate() {
+    const t = todayISO();
+    return ymOf(t) === viewYM ? t : `${viewYM}-01`;
+  }
+  function resetForm() {
+    editingId = null;
+    $('moveForm').reset();
+    $('tGasto').checked = true;
+    fillCategories();
+    $('fDate').value = defaultDate();
+    $('formTitle').textContent = 'Nuevo movimiento';
+    $('submitBtn').textContent = 'Agregar';
+    $('cancelEdit').hidden = true;
+  }
+  document.querySelectorAll('input[name=type]').forEach((r) => r.addEventListener('change', () => fillCategories()));
+
+  $('moveForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const amount = round2(parseFloat($('fAmount').value));
+    const date = $('fDate').value;
+    if (!(amount > 0) || !date) return;
+    const type = formType();
+    let category = $('fCategory').value;
+    let realType = type;
+    if (type === 'gasto' && category === 'ahorro') { realType = 'ahorro'; category = 'aporte'; }
+    const data = { type: realType, category, amount, date, note: $('fNote').value.trim() };
+    if (editingId) {
+      Object.assign(state.movements.find((m) => m.id === editingId), data);
+      toast('Movimiento actualizado');
+    } else {
+      state.movements.push({ id: uid(), ...data });
+      toast(realType === 'ahorro' ? 'Agregado a ahorros' : 'Movimiento agregado');
+    }
+    save();
+    if (ymOf(date) !== viewYM) viewYM = ymOf(date);
+    resetForm(); render();
+  });
+  $('cancelEdit').addEventListener('click', resetForm);
+
+  // ---------- Formulario de ahorros ----------
+  function resetSaveForm() {
+    editingSaveId = null;
+    $('saveForm').reset();
+    $('sAporte').checked = true;
+    $('sDate').value = defaultDate();
+    $('saveFormTitle').textContent = 'Nuevo movimiento de ahorro';
+    $('sSubmit').textContent = 'Agregar';
+    $('sCancel').hidden = true;
+  }
+  $('saveForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const amount = round2(parseFloat($('sAmount').value));
+    const date = $('sDate').value;
+    if (!(amount > 0) || !date) return;
+    const data = { type: 'ahorro', category: document.querySelector('input[name=stype]:checked').value, amount, date, note: $('sNote').value.trim() };
+    if (editingSaveId) {
+      Object.assign(state.movements.find((m) => m.id === editingSaveId), data);
+      toast('Ahorro actualizado');
+    } else {
+      state.movements.push({ id: uid(), ...data });
+      toast('Ahorro agregado');
+    }
+    save(); resetSaveForm(); render();
+  });
+  $('sCancel').addEventListener('click', resetSaveForm);
+  $('sGoal').addEventListener('change', () => {
+    state.savingsGoal = Math.max(0, parseFloat($('sGoal').value) || 0);
+    save(); render();
+  });
+
+  // ---------- Editar / borrar (delegado) ----------
+  document.addEventListener('click', (e) => {
+    const ed = e.target.closest('[data-edit]');
+    const del = e.target.closest('[data-del]');
+    if (ed) startEdit(ed.dataset.edit);
+    if (del) {
+      const m = state.movements.find((x) => x.id === del.dataset.del);
+      if (m && confirm(`¿Borrar ${LABELS[m.category] || m.category} de ${money(m.amount)} (${dayFmt(m.date)})?`)) {
+        state.movements = state.movements.filter((x) => x.id !== m.id);
+        if (editingId === m.id) resetForm();
+        if (editingSaveId === m.id) resetSaveForm();
+        save(); render(); toast('Movimiento borrado');
+      }
+    }
+  });
+  function startEdit(id) {
+    const m = state.movements.find((x) => x.id === id);
+    if (!m) return;
+    if (m.type === 'ahorro') {
+      editingSaveId = id;
+      (m.category === 'retiro' ? $('sRetiro') : $('sAporte')).checked = true;
+      $('sAmount').value = m.amount; $('sDate').value = m.date; $('sNote').value = m.note;
+      $('saveFormTitle').textContent = 'Editar movimiento de ahorro';
+      $('sSubmit').textContent = 'Guardar cambios'; $('sCancel').hidden = false;
+      $('saveForm').scrollIntoView({ behavior: 'smooth', block: 'center' });
+      $('sAmount').focus({ preventScroll: true });
+      return;
+    }
+    editingId = id;
+    (m.type === 'ingreso' ? $('tIngreso') : $('tGasto')).checked = true;
+    fillCategories(m.category);
+    $('fAmount').value = m.amount; $('fDate').value = m.date; $('fNote').value = m.note;
+    $('formTitle').textContent = 'Editar movimiento';
+    $('submitBtn').textContent = 'Guardar cambios'; $('cancelEdit').hidden = false;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    $('fAmount').focus({ preventScroll: true });
+  }
+
+  // ---------- Presupuestos (inputs) ----------
+  $('budgets').addEventListener('change', (e) => {
+    const k = e.target.dataset.budget;
+    if (!k) return;
+    state.budgets[k] = Math.max(0, parseFloat(e.target.value) || 0);
+    save(); render();
+  });
+
+  // ---------- Filtro ----------
+  $('filterCat').addEventListener('change', () => renderList(inMonth(viewYM)));
+
+  // ---------- Navegación de meses ----------
+  const goMonth = (ym) => { viewYM = ym; if (!editingId) $('fDate').value = defaultDate(); if (!editingSaveId) $('sDate').value = defaultDate(); render(); };
+  $('prevMonth').addEventListener('click', () => goMonth(shiftYM(viewYM, -1)));
+  $('nextMonth').addEventListener('click', () => goMonth(shiftYM(viewYM, 1)));
+  $('todayBtn').addEventListener('click', () => goMonth(ymOf(todayISO())));
+
+  // ---------- Exportar / importar ----------
+  $('exportBtn').addEventListener('click', () => {
+    const payload = { app: 'mis-finanzas', version: 1, exportedAt: new Date().toISOString(), ...state };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `finanzas-${todayISO()}.json`;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    toast('Archivo exportado');
+  });
+  $('importBtn').addEventListener('click', () => $('importFile').click());
+  $('importFile').addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    e.target.value = '';
+    if (!file) return;
+    try {
+      const data = JSON.parse(await file.text());
+      if (!validate(data)) throw new Error('formato');
+      if (!confirm(`Se van a reemplazar tus datos actuales por ${data.movements.length} movimientos del archivo. ¿Continuar?`)) return;
+      state = normalize(data);
+      save(); resetForm(); resetSaveForm(); render();
+      toast('Datos importados');
+    } catch {
+      alert('No se pudo importar: el archivo no es un JSON válido de esta app.');
+    }
+  });
+
+  $('sampleBtn').addEventListener('click', () => {
+    if (!confirm('¿Reemplazar tus datos por los datos de ejemplo?')) return;
+    state = sampleState(); viewYM = ymOf(todayISO());
+    save(); resetForm(); resetSaveForm(); render(); toast('Ejemplo cargado');
+  });
+  $('resetBtn').addEventListener('click', () => {
+    if (!confirm('¿Borrar todos los movimientos? Te conviene exportar antes.')) return;
+    state = { movements: [], budgets: state.budgets, savingsGoal: state.savingsGoal };
+    save(); resetForm(); resetSaveForm(); render(); toast('Datos borrados');
+  });
+
+  // ---------- Inicio ----------
+  resetForm(); resetSaveForm(); render(); save();
+})();
+</script>
+</body>
+</html>
